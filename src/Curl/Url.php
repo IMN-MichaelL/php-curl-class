@@ -4,6 +4,52 @@ namespace Curl;
 
 use Curl\StrUtil;
 
+if (function_exists('mb_substr_replace') === false)
+{
+    function mb_substr_replace($string, $replacement, $start, $length = null, $encoding = null)
+    {
+        if (extension_loaded('mbstring') === true)
+        {
+            $string_length = (is_null($encoding) === true) ? mb_strlen($string) : mb_strlen($string, $encoding);
+
+            if ($start < 0)
+            {
+                $start = max(0, $string_length + $start);
+            }
+
+            else if ($start > $string_length)
+            {
+                $start = $string_length;
+            }
+
+            if ($length < 0)
+            {
+                $length = max(0, $string_length - $start + $length);
+            }
+
+            else if ((is_null($length) === true) || ($length > $string_length))
+            {
+                $length = $string_length;
+            }
+
+            if (($start + $length) > $string_length)
+            {
+                $length = $string_length - $start;
+            }
+
+            if (is_null($encoding) === true)
+            {
+                return mb_substr($string, 0, $start) . $replacement . mb_substr($string, $start + $length, $string_length - $start - $length);
+            }
+
+            return mb_substr($string, 0, $start, $encoding) . $replacement . mb_substr($string, $start + $length, $string_length - $start - $length, $encoding);
+        }
+
+        return (is_null($length) === true) ? substr_replace($string, $replacement, $start) : substr_replace($string, $replacement, $start, $length);
+    }
+}
+
+
 class Url
 {
     private $baseUrl = null;
@@ -37,15 +83,15 @@ class Url
             // A.  If the input buffer begins with a prefix of "../" or "./",
             //     then remove that prefix from the input buffer; otherwise,
             if (StrUtil::startsWith($input, '../')) {
-                $input = substr($input, 3);
+                $input = mb_substr($input, 3);
             } elseif (StrUtil::startsWith($input, './')) {
-                $input = substr($input, 2);
+                $input = mb_substr($input, 2);
 
             // B.  if the input buffer begins with a prefix of "/./" or "/.",
             //     where "." is a complete path segment, then replace that
             //     prefix with "/" in the input buffer; otherwise,
             } elseif (StrUtil::startsWith($input, '/./')) {
-                $input = substr($input, 2);
+                $input = mb_substr($input, 2);
             } elseif ($input === '/.') {
                 $input = '/';
 
@@ -55,11 +101,11 @@ class Url
             //     segment and its preceding "/" (if any) from the output
             //     buffer; otherwise,
             } elseif (StrUtil::startsWith($input, '/../')) {
-                $input = substr($input, 3);
-                $output = substr_replace($output, '', mb_strrpos($output, '/'));
+                $input = mb_substr($input, 3);
+                $output = mb_substr_replace($output, '', mb_strrpos($output, '/'));
             } elseif ($input === '/..') {
                 $input = '/';
-                $output = substr_replace($output, '', mb_strrpos($output, '/'));
+                $output = mb_substr_replace($output, '', mb_strrpos($output, '/'));
 
             // D.  if the input buffer consists only of "." or "..", then remove
             //     that from the input buffer; otherwise,
@@ -71,8 +117,8 @@ class Url
             //     any) and any subsequent characters up to, but not including,
             //     the next "/" character or the end of the input buffer.
             } elseif (!(($pos = mb_strpos($input, '/', 1)) === false)) {
-                $output .= substr($input, 0, $pos);
-                $input = substr_replace($input, '', 0, $pos);
+                $output .= mb_substr($input, 0, $pos);
+                $input = mb_substr_replace($input, '', 0, $pos);
             } else {
                 $output .= $input;
                 $input = '';
