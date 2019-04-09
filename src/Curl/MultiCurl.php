@@ -846,7 +846,10 @@ class MultiCurl
 
         $curl->setOpts($this->options);
         $curl->setRetry($this->retry);
-        $curl->setCookies($this->cookies);
+
+        if ($this->cookies) {
+            $curl->setCookies($this->cookies);
+        }
 
         $curlm_error_code = curl_multi_add_handle($this->multiCurl, $curl->curl);
         if (!($curlm_error_code === CURLM_OK)) {
